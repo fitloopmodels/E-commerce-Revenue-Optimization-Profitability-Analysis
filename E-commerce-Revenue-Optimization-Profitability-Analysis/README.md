@@ -183,4 +183,5 @@ To complete the project, you'll need to:
 4. Build the Power BI dashboard connecting to the processed data
 5. Add your visualizations and custom insights
 
-The project demonstrates your skills in SQL, Python, Machine Learning, Power BI, and business analysis - perfect for your portfolio!
+
+
