@@ -1,0 +1,178 @@
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+import matplotlib.pyplot as plt
+import seaborn as sns
+from datetime import datetime
+import warnings
+warnings.filterwarnings('ignore')
+
+class RFMSegmentation:
+    def __init__(self, customer_data):
+        """
+        Initialize RFM Segmentation
+        
+        Parameters:
+        - customer_data: DataFrame with customer_id, recency, frequency, monetary
+        """
+        self.data = customer_data
+        self.rfm_scores = None
+        self.segments = None
+        
+    def calculate_rfm(self):
+        """Calculate RFM scores"""
+        # Recency: lower is better
+        self.data['R_Score'] = pd.qcut(self.data['recency_days'].rank(method='first'), 
+                                       5, labels=[5,4,3,2,1]).astype(int)
+        
+        # Frequency: higher is better
+        self.data['F_Score'] = pd.qcut(self.data['order_count'].rank(method='first'), 
+                                       5, labels=[1,2,3,4,5]).astype(int)
+        
+        # Monetary: higher is better
+        self.data['M_Score'] = pd.qcut(self.data['total_spent'].rank(method='first'), 
+                                       5, labels=[1,2,3,4,5]).astype(int)
+        
+        # Combined RFM Score
+        self.data['RFM_Score'] = self.data['R_Score'].astype(str) + \
+                                 self.data['F_Score'].astype(str) + \
+                                 self.data['M_Score'].astype(str)
+        
+        self.rfm_scores = self.data
+        
+    def segment_customers(self, n_clusters=4):
+        """Cluster customers using K-means"""
+        # Prepare features for clustering
+        features = self.data[['R_Score', 'F_Score', 'M_Score']]
+        scaler = StandardScaler()
+        features_scaled = scaler.fit_transform(features)
+        
+        # K-means clustering
+        kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+        self.data['Segment'] = kmeans.fit_predict(features_scaled)
+        
+        # Name segments based on characteristics
+        segment_profiles = self.data.groupby('Segment').agg({
+            'recency_days': 'mean',
+            'order_count': 'mean',
+            'total_spent': 'mean',
+            'R_Score': 'mean',
+            'F_Score': 'mean',
+            'M_Score': 'mean'
+        }).round(2)
+        
+        # Assign segment names
+        segment_names = []
+        for idx, row in segment_profiles.iterrows():
+            if row['F_Score'] > 4 and row['M_Score'] > 4:
+                name = 'Champions'
+            elif row['F_Score'] > 3 and row['M_Score'] > 3:
+                name = 'Loyal Customers'
+            elif row['recency_days'] < 30 and row['F_Score'] < 3:
+                name = 'New Customers'
+            else:
+                name = 'At Risk'
+            segment_names.append(name)
+        
+        self.data['Segment_Name'] = self.data['Segment'].map(
+            dict(zip(segment_profiles.index, segment_names))
+        )
+        
+        return self.data
+    
+    def get_segment_insights(self):
+        """Generate insights for each segment"""
+        insights = {}
+        
+        for segment in self.data['Segment_Name'].unique():
+            segment_data = self.data[self.data['Segment_Name'] == segment]
+            
+            insights[segment] = {
+                'count': len(segment_data),
+                'percentage': len(segment_data) / len(self.data) * 100,
+                'avg_spend': segment_data['total_spent'].mean(),
+                'avg_frequency': segment_data['order_count'].mean(),
+                'avg_recency': segment_data['recency_days'].mean(),
+                'recommendation': self._get_recommendation(segment)
+            }
+        
+        return insights
+    
+    def _get_recommendation(self, segment):
+        """Get retention strategy recommendations"""
+        strategies = {
+            'Champions': 'Reward loyalty, offer exclusive perks, request reviews',
+            'Loyal Customers': 'Cross-sell premium products, referral programs',
+            'New Customers': 'Onboarding campaigns, first-purchase discounts',
+            'At Risk': 'Re-engagement emails, special offers, feedback surveys'
+        }
+        return strategies.get(segment, 'Standard retention strategies')
+    
+    def visualize_segments(self):
+        """Create visualizations for segments"""
+        fig, axes = plt.subplots(2, 2, figsize=(15, 12))
+        
+        # Segment distribution
+        self.data['Segment_Name'].value_counts().plot(kind='bar', ax=axes[0,0])
+        axes[0,0].set_title('Customer Segment Distribution')
+        axes[0,0].set_xlabel('Segment')
+        axes[0,0].set_ylabel('Number of Customers')
+        
+        # Average spend by segment
+        self.data.groupby('Segment_Name')['total_spent'].mean().plot(kind='bar', ax=axes[0,1])
+        axes[0,1].set_title('Average Spend by Segment')
+        axes[0,1].set_xlabel('Segment')
+        axes[0,1].set_ylabel('Avg Total Spent ($)')
+        
+        # RFM Heatmap
+        rfm_heatmap = self.data.pivot_table(
+            values='customer_unique_id', 
+            index='R_Score', 
+            columns='F_Score', 
+            aggfunc='count'
+        )
+        sns.heatmap(rfm_heatmap, annot=True, fmt='d', cmap='YlOrRd', ax=axes[1,0])
+        axes[1,0].set_title('RFM Heatmap: Recency vs Frequency')
+        
+        # 3D scatter plot (simplified as 2D)
+        scatter = axes[1,1].scatter(
+            self.data['F_Score'], 
+            self.data['M_Score'], 
+            c=self.data['Segment'], 
+            cmap='viridis',
+            alpha=0.6
+        )
+        axes[1,1].set_xlabel('Frequency Score')
+        axes[1,1].set_ylabel('Monetary Score')
+        axes[1,1].set_title('Customer Segments: Frequency vs Monetary')
+        plt.colorbar(scatter, ax=axes[1,1])
+        
+        plt.tight_layout()
+        plt.savefig('reports/rfm_segmentation.png', dpi=300, bbox_inches='tight')
+        plt.show()
+        
+        return fig
+
+if __name__ == "__main__":
+    # Load processed customer data
+    customer_data = pd.read_csv('data/processed/customer_features.csv')
+    
+    # Initialize and run RFM segmentation
+    rfm = RFMSegmentation(customer_data)
+    rfm.calculate_rfm()
+    segmented_customers = rfm.segment_customers()
+    
+    # Get insights
+    insights = rfm.get_segment_insights()
+    for segment, info in insights.items():
+        print(f"\n{segment}:")
+        print(f"  Count: {info['count']} ({info['percentage']:.1f}%)")
+        print(f"  Avg Spend: ${info['avg_spend']:.2f}")
+        print(f"  Recommendation: {info['recommendation']}")
+    
+    # Visualize
+    rfm.visualize_segments()
+    
+    # Save results
+    segmented_customers.to_csv('data/processed/rfm_segmentation_results.csv', index=False)

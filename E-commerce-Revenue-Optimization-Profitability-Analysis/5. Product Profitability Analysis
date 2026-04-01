@@ -1,0 +1,111 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+class ProductProfitabilityAnalyzer:
+    def __init__(self, orders_data):
+        self.data = orders_data
+        
+    def analyze_product_profitability(self):
+        """Analyze product-level profitability"""
+        # Aggregate by product
+        product_metrics = self.data.groupby('product_id').agg({
+            'product_category_name': 'first',
+            'price': ['sum', 'mean', 'count'],
+            'freight_value': 'sum',
+            'estimated_cost': 'sum'
+        }).reset_index()
+        
+        product_metrics.columns = ['product_id', 'category', 'total_revenue', 'avg_price', 
+                                   'order_count', 'total_freight', 'total_cost']
+        
+        product_metrics['total_profit'] = product_metrics['total_revenue'] - product_metrics['total_cost']
+        product_metrics['profit_margin'] = (product_metrics['total_profit'] / product_metrics['total_revenue']) * 100
+        
+        # Sort by revenue contribution
+        product_metrics = product_metrics.sort_values('total_revenue', ascending=False)
+        product_metrics['cumulative_revenue_pct'] = product_metrics['total_revenue'].cumsum() / product_metrics['total_revenue'].sum() * 100
+        
+        # Identify top products
+        top_products = product_metrics.head(int(len(product_metrics) * 0.15))
+        bottom_products = product_metrics.tail(int(len(product_metrics) * 0.3))
+        
+        print(f"Top 15% products contribute: ${top_products['total_revenue'].sum():,.2f}")
+        print(f"Percentage of total revenue: {(top_products['total_revenue'].sum() / product_metrics['total_revenue'].sum()) * 100:.1f}%")
+        print(f"\nNegative margin products: {len(bottom_products[bottom_products['profit_margin'] < 0])}")
+        
+        # Recommendations
+        recommendations = {
+            'expand': top_products[top_products['profit_margin'] > 20].head(10),
+            'optimize': product_metrics[(product_metrics['profit_margin'] < 0) & (product_metrics['total_revenue'] > 1000)],
+            'discontinue': bottom_products[bottom_products['profit_margin'] < -10].head(10)
+        }
+        
+        return product_metrics, recommendations
+    
+    def visualize_product_analysis(self, product_metrics):
+        """Create product analysis visualizations"""
+        fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+        
+        # Pareto chart
+        axes[0,0].plot(product_metrics.index, product_metrics['cumulative_revenue_pct'], 'b-', linewidth=2)
+        axes[0,0].axhline(y=80, color='r', linestyle='--', label='80% threshold')
+        axes[0,0].fill_between(product_metrics.index, 0, product_metrics['cumulative_revenue_pct'], alpha=0.3)
+        axes[0,0].set_title('Pareto Analysis: Cumulative Revenue Contribution')
+        axes[0,0].set_xlabel('Products')
+        axes[0,0].set_ylabel('Cumulative Revenue (%)')
+        axes[0,0].legend()
+        
+        # Profit margin distribution
+        product_metrics['profit_margin'].hist(bins=50, ax=axes[0,1], edgecolor='black')
+        axes[0,1].axvline(x=0, color='r', linestyle='--', label='Break-even')
+        axes[0,1].set_title('Profit Margin Distribution')
+        axes[0,1].set_xlabel('Profit Margin (%)')
+        axes[0,1].set_ylabel('Number of Products')
+        axes[0,1].legend()
+        
+        # Revenue vs Profit margin
+        scatter = axes[1,0].scatter(product_metrics['total_revenue'], 
+                                   product_metrics['profit_margin'],
+                                   c=product_metrics['profit_margin'], 
+                                   cmap='RdYlGn', alpha=0.6)
+        axes[1,0].set_xscale('log')
+        axes[1,0].set_xlabel('Total Revenue (log scale)')
+        axes[1,0].set_ylabel('Profit Margin (%)')
+        axes[1,0].set_title('Revenue vs Profit Margin')
+        plt.colorbar(scatter, ax=axes[1,0])
+        
+        # Top categories by profit
+        category_profit = product_metrics.groupby('category').agg({
+            'total_profit': 'sum',
+            'total_revenue': 'sum'
+        }).reset_index()
+        category_profit = category_profit.sort_values('total_profit', ascending=False).head(10)
+        axes[1,1].barh(category_profit['category'], category_profit['total_profit'])
+        axes[1,1].set_title('Top 10 Categories by Profit')
+        axes[1,1].set_xlabel('Total Profit ($)')
+        
+        plt.tight_layout()
+        plt.savefig('reports/product_profitability_analysis.png', dpi=300, bbox_inches='tight')
+        plt.show()
+        
+        return fig
+
+if __name__ == "__main__":
+    orders_df = pd.read_parquet('data/processed/processed_orders.parquet')
+    
+    analyzer = ProductProfitabilityAnalyzer(orders_df)
+    product_metrics, recommendations = analyzer.analyze_product_profitability()
+    analyzer.visualize_product_analysis(product_metrics)
+    
+    # Save recommendations
+    with open('reports/sku_rationalization_recommendations.txt', 'w') as f:
+        f.write("SKU Rationalization Recommendations\n")
+        f.write("=" * 50 + "\n\n")
+        f.write("Products to Expand:\n")
+        f.write(recommendations['expand'].to_string())
+        f.write("\n\nProducts to Optimize (High Revenue, Negative Margin):\n")
+        f.write(recommendations['optimize'].to_string())
+        f.write("\n\nProducts to Discontinue:\n")
+        f.write(recommendations['discontinue'].to_string())
