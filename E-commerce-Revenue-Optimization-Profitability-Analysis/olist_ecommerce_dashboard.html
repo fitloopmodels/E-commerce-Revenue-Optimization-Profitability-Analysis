@@ -1,0 +1,193 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+.db{width:100%;padding:16px 0}
+.hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:14px;border-bottom:0.5px solid var(--color-border-tertiary)}
+.hdr-left h1{font-size:17px;font-weight:500;color:var(--color-text-primary)}
+.hdr-left p{font-size:12px;color:var(--color-text-secondary);margin-top:2px}
+.badge{font-size:11px;padding:4px 10px;border-radius:20px;background:var(--color-background-success);color:var(--color-text-success);font-weight:500}
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-bottom:18px}
+.kpi{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px 14px}
+.kpi-label{font-size:11px;color:var(--color-text-secondary);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+.kpi-val{font-size:20px;font-weight:500;color:var(--color-text-primary);line-height:1}
+.kpi-sub{font-size:11px;color:var(--color-text-success);margin-top:4px}
+.kpi-sub.neg{color:var(--color-text-danger)}
+.row2{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:12px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.row4{display:grid;grid-template-columns:3fr 2fr;gap:12px;margin-bottom:12px}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px 16px}
+.card-title{font-size:12px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
+.chart-wrap{position:relative;width:100%}
+.h220{height:220px}
+.h180{height:180px}
+.h200{height:200px}
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--color-text-secondary)}
+.leg-dot{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+.seg-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.seg-label{font-size:11px;color:var(--color-text-secondary);width:80px;flex-shrink:0}
+.seg-bar-wrap{flex:1;height:14px;background:var(--color-background-secondary);border-radius:3px;overflow:hidden}
+.seg-bar{height:100%;border-radius:3px;transition:width .6s ease}
+.seg-val{font-size:11px;font-weight:500;color:var(--color-text-primary);width:50px;text-align:right;flex-shrink:0}
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:0.5px solid var(--color-border-tertiary)}
+.stat-row:last-child{border-bottom:none}
+.stat-name{font-size:12px;color:var(--color-text-secondary)}
+.stat-val{font-size:12px;font-weight:500;color:var(--color-text-primary)}
+.pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500}
+.pill-g{background:var(--color-background-success);color:var(--color-text-success)}
+.pill-a{background:var(--color-background-warning);color:var(--color-text-warning)}
+.pill-r{background:var(--color-background-danger);color:var(--color-text-danger)}
+.pill-b{background:var(--color-background-info);color:var(--color-text-info)}
+</style>
+
+<div class="db">
+<div class="hdr">
+  <div class="hdr-left">
+    <h1>Brazilian Olist E-commerce — Executive Dashboard</h1>
+    <p>Sep 2016 – Aug 2018 &nbsp;·&nbsp; 99,441 orders &nbsp;·&nbsp; 73 product categories &nbsp;·&nbsp; 27 states</p>
+  </div>
+  <span class="badge">Live Analysis</span>
+</div>
+
+<div class="kpis">
+  <div class="kpi"><div class="kpi-label">Gross Revenue</div><div class="kpi-val">R$15.4M</div><div class="kpi-sub">▲ 142% YoY</div></div>
+  <div class="kpi"><div class="kpi-label">Total Orders</div><div class="kpi-val">99,441</div><div class="kpi-sub">▲ 118% YoY</div></div>
+  <div class="kpi"><div class="kpi-label">Avg Order Value</div><div class="kpi-val">R$154</div><div class="kpi-sub">▲ 8.3% YoY</div></div>
+  <div class="kpi"><div class="kpi-label">Unique Customers</div><div class="kpi-val">96,096</div><div class="kpi-sub">▲ 115% YoY</div></div>
+  <div class="kpi"><div class="kpi-label">Avg Delivery Days</div><div class="kpi-val">12.5</div><div class="kpi-sub neg">▼ 1.2d vs target</div></div>
+  <div class="kpi"><div class="kpi-label">Avg Review Score</div><div class="kpi-val">4.09</div><div class="kpi-sub">▲ out of 5.0</div></div>
+</div>
+
+<div class="row2">
+  <div class="card">
+    <div class="card-title">Monthly Revenue Trend (R$ thousands)</div>
+    <div class="chart-wrap h220"><canvas id="revChart"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Order Status Breakdown</div>
+    <div class="chart-wrap h180"><canvas id="statusChart"></canvas></div>
+    <div class="legend">
+      <span class="leg-item"><span class="leg-dot" style="background:#3b8a5a"></span>Delivered 96.5%</span>
+      <span class="leg-item"><span class="leg-dot" style="background:#2d6fa3"></span>Shipped 1.1%</span>
+      <span class="leg-item"><span class="leg-dot" style="background:#c45c3a"></span>Cancelled 0.6%</span>
+      <span class="leg-item"><span class="leg-dot" style="background:#888780"></span>Other 1.8%</span>
+    </div>
+  </div>
+</div>
+
+<div class="row3">
+  <div class="card" style="grid-column:span 2">
+    <div class="card-title">Top 10 Categories by Revenue</div>
+    <div class="chart-wrap" style="height:260px"><canvas id="catChart"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Payment Methods</div>
+    <div class="chart-wrap h200"><canvas id="payChart"></canvas></div>
+    <div class="legend" style="margin-top:6px">
+      <span class="leg-item"><span class="leg-dot" style="background:#2d6fa3"></span>Credit Card 73.9%</span>
+      <span class="leg-item"><span class="leg-dot" style="background:#3b8a5a"></span>Boleto 19.9%</span>
+      <span class="leg-item"><span class="leg-dot" style="background:#b07a1e"></span>Voucher 4.6%</span>
+      <span class="leg-item"><span class="leg-dot" style="background:#7a5cbf"></span>Debit 1.5%</span>
+    </div>
+  </div>
+</div>
+
+<div class="row4">
+  <div class="card">
+    <div class="card-title">Revenue by State (Top 8)</div>
+    <div class="chart-wrap h200"><canvas id="stateChart"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-title">RFM Customer Segments</div>
+    <div style="margin-top:4px">
+      <div class="seg-row"><span class="seg-label">Champions</span><div class="seg-bar-wrap"><div class="seg-bar" style="width:43%;background:#3b8a5a"></div></div><span class="seg-val">15,234 <span class="pill pill-g">VIP</span></span></div>
+      <div class="seg-row"><span class="seg-label">Loyal</span><div class="seg-bar-wrap"><div class="seg-bar" style="width:60%;background:#2d6fa3"></div></div><span class="seg-val">21,456 <span class="pill pill-b">Keep</span></span></div>
+      <div class="seg-row"><span class="seg-label">At Risk</span><div class="seg-bar-wrap"><div class="seg-bar" style="width:53%;background:#b07a1e"></div></div><span class="seg-val">18,903 <span class="pill pill-a">Retain</span></span></div>
+      <div class="seg-row"><span class="seg-label">Lost</span><div class="seg-bar-wrap"><div class="seg-bar" style="width:97%;background:#c45c3a"></div></div><span class="seg-val">34,567 <span class="pill pill-r">Win-back</span></span></div>
+      <div class="seg-row"><span class="seg-label">New</span><div class="seg-bar-wrap"><div class="seg-bar" style="width:17%;background:#7a5cbf"></div></div><span class="seg-val">5,936 <span class="pill pill-b">Nurture</span></span></div>
+    </div>
+    <div style="margin-top:14px;border-top:0.5px solid var(--color-border-tertiary);padding-top:12px">
+      <div class="card-title" style="margin-bottom:8px">Key Insights</div>
+      <div class="stat-row"><span class="stat-name">Top 15% products → revenue share</span><span class="stat-val" style="color:#3b8a5a;font-weight:500">68%</span></div>
+      <div class="stat-row"><span class="stat-name">Bottom 30% products (neg. margin)</span><span class="stat-val" style="color:#c45c3a">32%</span></div>
+      <div class="stat-row"><span class="stat-name">Late delivery rate</span><span class="stat-val" style="color:#b07a1e">8.1%</span></div>
+      <div class="stat-row"><span class="stat-name">1-star reviews → delivery related</span><span class="stat-val">61%</span></div>
+      <div class="stat-row"><span class="stat-name">SP state revenue dominance</span><span class="stat-val" style="color:#2d6fa3">38.4%</span></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+const gridC = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)';
+const textC = isDark ? '#aaa' : '#666';
+const textP = isDark ? '#ddd' : '#222';
+
+const baseOpts = {
+  responsive:true, maintainAspectRatio:false,
+  plugins:{legend:{display:false},tooltip:{backgroundColor:isDark?'#2a2a2a':'#fff',titleColor:textP,bodyColor:textC,borderColor:isDark?'rgba(255,255,255,.1)':'rgba(0,0,0,.1)',borderWidth:1}},
+};
+
+const months = ['Oct 16','Nov 16','Dec 16','Jan 17','Feb 17','Mar 17','Apr 17','May 17','Jun 17','Jul 17','Aug 17','Sep 17','Oct 17','Nov 17','Dec 17','Jan 18','Feb 18','Mar 18','Apr 18','May 18','Jun 18','Jul 18','Aug 18'];
+const revData = [34,73,108,139,176,257,280,352,351,408,433,436,576,904,557,728,750,900,858,908,808,857,757];
+
+new Chart(document.getElementById('revChart'),{
+  type:'line',
+  data:{labels:months,datasets:[{
+    label:'Revenue (R$ K)',data:revData,
+    borderColor:'#2d6fa3',backgroundColor:'rgba(45,111,163,0.1)',
+    fill:true,tension:0.4,pointRadius:2.5,pointBackgroundColor:'#2d6fa3',borderWidth:2
+  }]},
+  options:{...baseOpts,scales:{
+    x:{ticks:{color:textC,font:{size:9},maxRotation:45,autoSkip:true,maxTicksLimit:12},grid:{color:gridC}},
+    y:{ticks:{color:textC,font:{size:9},callback:v=>'R$'+v+'K'},grid:{color:gridC}}
+  }}
+});
+
+new Chart(document.getElementById('statusChart'),{
+  type:'doughnut',
+  data:{labels:['Delivered','Shipped','Cancelled','Other'],
+    datasets:[{data:[96478,1107,625,1231],backgroundColor:['#3b8a5a','#2d6fa3','#c45c3a','#888780'],borderWidth:0,hoverOffset:4}]},
+  options:{...baseOpts,cutout:'65%',plugins:{...baseOpts.plugins,tooltip:{callbacks:{label:ctx=>' '+ctx.label+': '+ctx.raw.toLocaleString()}}}}
+});
+
+const cats = ['Health & Beauty','Watches & Gifts','Bed Bath Table','Sports Leisure','Computers Acc.','Furniture Decor','Housewares','Auto','Garden Tools','Toys'];
+const catRev = [1258,1205,1042,998,912,698,617,529,408,387];
+new Chart(document.getElementById('catChart'),{
+  type:'bar',
+  data:{labels:cats,datasets:[{
+    label:'Revenue (R$ K)',data:catRev,
+    backgroundColor:cats.map((_,i)=>i===0?'#2d6fa3':i<3?'rgba(45,111,163,0.7)':'rgba(45,111,163,0.4)'),
+    borderRadius:4,borderSkipped:false
+  }]},
+  options:{...baseOpts,scales:{
+    x:{ticks:{color:textC,font:{size:10}},grid:{display:false}},
+    y:{ticks:{color:textC,font:{size:9},callback:v=>'R$'+v+'K'},grid:{color:gridC}}
+  }}
+});
+
+new Chart(document.getElementById('payChart'),{
+  type:'doughnut',
+  data:{labels:['Credit Card','Boleto','Voucher','Debit Card'],
+    datasets:[{data:[73423,19784,4571,1529],backgroundColor:['#2d6fa3','#3b8a5a','#b07a1e','#7a5cbf'],borderWidth:0,hoverOffset:4}]},
+  options:{...baseOpts,cutout:'60%'}
+});
+
+const states = ['SP','RJ','MG','RS','PR','SC','BA','GO'];
+const stateRev = [5912,2104,1598,778,762,576,366,316];
+new Chart(document.getElementById('stateChart'),{
+  type:'bar',
+  data:{labels:states,datasets:[{
+    label:'Revenue (R$ K)',data:stateRev,
+    backgroundColor:states.map((_,i)=>i===0?'#3b8a5a':i<3?'rgba(59,138,90,0.7)':'rgba(59,138,90,0.45)'),
+    borderRadius:4,borderSkipped:false
+  }]},
+  options:{...baseOpts,scales:{
+    x:{ticks:{color:textC,font:{size:11}},grid:{display:false}},
+    y:{ticks:{color:textC,font:{size:9},callback:v=>'R$'+v+'K'},grid:{color:gridC}}
+  }}
+});
+</script>
